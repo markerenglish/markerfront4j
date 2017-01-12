@@ -2,6 +2,7 @@
   <wb-module deploy-name="markerfront4j">
     <property name="context-root" value="markerfront4j"/>
     <wb-resource deploy-path="/" source-path="src/main/webapp"/>
+        <wb-resource deploy-path="/WEB-INF/classes" source-path="/src/main/java"/>
     <property name="java-output-path" value="/target/classes"/>
     <dependent-module archiveName="javax.servlet-api-3.1.0.jar" deploy-path="/WEB-INF/lib" handle="module:/classpath/var/M2_REPO/javax/servlet/javax.servlet-api/3.1.0/javax.servlet-api-3.1.0.jar">
       <dependency-type>uses</dependency-type>
