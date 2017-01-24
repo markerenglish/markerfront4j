@@ -1,6 +1,6 @@
-<jsp:useBean id="Members" class="forum.Members"/>
-<jsp:useBean id="Boxes" class="forum.Boxes"/>
-<jsp:useBean id="Threads" class="forum.Threads"/>
+<jsp:useBean id="Members" class="com.marker.front.Members"/>
+<jsp:useBean id="Boxes" class="com.marker.front.Boxes"/>
+<jsp:useBean id="Threads" class="com.marker.front.Threads"/>
 <%@ page import="java.util.*" %>
 <% 
 	String username = "";
