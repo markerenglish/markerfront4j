@@ -4,8 +4,10 @@ import java.sql.*;
 import java.util.*;
 
 public class Members {
+
 	private int memberid;
-	private String username, password, firstname, lastname, email, regdate, type;
+	private String username, password, firstname, lastname, email, type;
+	private String regdate;
 
 	public int getMemberid() {
 		return memberid;
@@ -72,37 +74,63 @@ public class Members {
 	}
 
 	public boolean checkReg(String username) {
-		String query = "SELECT member_id FROM Members WHERE [username]='" + username + "'";
+		String query = "SELECT member_id FROM members WHERE username = ?";
+		Connection conn = null;
+		PreparedStatement stat = null;
 
 		try {
-			Class.forName("sun.jdbc.odbc.JdbcOdbcDriver");
-			Connection con = DriverManager.getConnection("jdbc:odbc:Forum");
-			Statement stat = con.createStatement();
-			ResultSet rst = stat.executeQuery(query);
+	        conn = createConn();
+	        stat = conn.prepareStatement(query);
+	        stat.setString(1, username);
+			ResultSet rst = stat.executeQuery();
 			if(rst.next() == false) {
-				con.close();
+				conn.close();
 				return true;
 			}
 			else {
-				con.close();
+				conn.close();
 				return false;
 			}
 		}
 		catch(Exception e) {
 			e.printStackTrace();
 			return false;
+		} finally {
+			closeConn(conn, stat);
 		}
 	}
 
+	private Connection createConn() throws SQLException, ClassNotFoundException{
+		Class.forName("com.mysql.jdbc.Driver");
+
+		Connection conn = DriverManager.getConnection("jdbc:mysql://192.168.91.136/markerdb", 
+				"marker", "mattl");
+
+		return conn;
+	}
+	
+	private void closeConn(Connection conn, Statement stat){
+		try{
+			if(stat != null && !stat.isClosed())
+				stat.close();
+			if(conn != null && !conn.isClosed())
+		    conn.close();
+		}
+		catch(Exception e) {
+		    e.printStackTrace();
+		}
+	}
+	
 	public boolean authenticate() {
-		String query = "SELECT * FROM Members";
+		String query = "SELECT * FROM members";
 		String DbUsername = "";
 		String DbPassword = "";
+		Connection conn = null;
+		PreparedStatement stat = null;
 
 		try {
-			Class.forName("sun.jdbc.odbc.JdbcOdbcDriver");
-			Connection con = DriverManager.getConnection("jdbc:odbc:Forum");
-			Statement stat = con.createStatement();
+			conn = createConn();
+			stat = conn.prepareStatement(query);
 			ResultSet rst = stat.executeQuery(query);
 
 			while(rst.next()) {
@@ -110,7 +138,6 @@ public class Members {
 				DbPassword = rst.getString("password");
 
 				if(username.equals(DbUsername) && password.equals(DbPassword)) {
-					con.close();
 					return true;
 				}
 			}
@@ -119,101 +146,121 @@ public class Members {
 		catch(Exception e) {
 			e.printStackTrace();
 			return false;
+		}finally{
+			closeConn(conn, stat);
 		}
 	}
 
 	public boolean regMember() {
+		Connection conn = null;
+		PreparedStatement stat = null;
+
 		memberid = (int) (1000 + Math.random()* 1000);
 		firstname = "";
 		lastname = "";
 		email = "";
-		regdate = new java.util.Date().toString();
 		type = "Member";
 
-		String query = "INSERT INTO Members (member_id, [username], [password], [firstname], [lastname], [email], [regdate], [type]) " +
-						"VALUES (" + memberid + ", " +
-						"'" + username + "', " +
-						"'" + password + "', " +
-						"'" + firstname + "', " +
-						"'" + lastname + "', " +
-						"'" + email + "', " +
-						"'" + regdate + "', " +
-						"'" + type + "')";
+		String query = 
+				"INSERT INTO members (member_id, username, password, firstname, lastname, email, regdate, type) VALUES (?,?,?,?,?,?,?,?)";
 		try {
-			Class.forName("sun.jdbc.odbc.JdbcOdbcDriver");
-			Connection con = DriverManager.getConnection("jdbc:odbc:Forum");
-			Statement stat = con.createStatement();
-			stat.execute(query);
-			con.close();
+			conn = createConn();
+			stat = conn.prepareStatement(query);
+			stat.setInt(1, memberid);
+			stat.setString(2, username);
+			stat.setString(3, password);
+			stat.setString(4, firstname);
+			stat.setString(5, lastname);
+			stat.setString(6, email);
+			stat.setDate(7, new java.sql.Date(System.currentTimeMillis()));
+			stat.executeUpdate(query);
 			return true;
 		}
 		catch(Exception e) {
 			e.printStackTrace();
 			return false;
+		}finally{
+			closeConn(conn, stat);
 		}
 	}
 
 	public boolean setMember(String username) {
-		String password_upd = "";
-
-		if(password != null) {
-			password_upd = "password='" + password + "', ";
-		}
-
-		String query = "UPDATE Members SET " + password_upd +
-						"firstname='" + firstname + "', " +
-						"lastname='" + lastname + "', " +
-						"email='" + email + "' WHERE [username]='" + username + "'";
+		Connection conn = null;
+		PreparedStatement stat = null;
+		String query = null;
 
 		try {
-			Class.forName("sun.jdbc.odbc.JdbcOdbcDriver");
-			Connection con = DriverManager.getConnection("jdbc:odbc:Forum");
-			Statement stat = con.createStatement();
-			stat.execute(query);
-			con.close();
+			if(password != null) {
+				query = "UPDATE members SET password=?, firstname=?, lastname=?, email=? WHERE username=?";
+			} else {
+				query = "UPDATE members SET firstname=?, lastname=?, email=? WHERE username=?";
+			}
+			conn = createConn();
+			stat = conn.prepareStatement(query);
+			int index = 0;
+        	if(password != null){
+			    stat.setString(1, password);
+			    index++;
+			}
+			stat.setString(++index, firstname);
+			stat.setString(++index, lastname);
+			stat.setString(++index, email);
+			stat.setString(++index, username);
+			stat.executeUpdate(query);
 			return true;
 		}
 		catch(Exception e) {
 			e.printStackTrace();
 			return false;
+		}finally{
+			closeConn(conn, stat);
 		}
 	}
 
 	public boolean setMember(int memberid) {
-		String password_upd = "";
-
-		if(password != null) {
-			password_upd = "password='" + password + "', ";
-		}
-
-		String query = "UPDATE Members SET " + password_upd +
-						"username='" + username + "', " +
-						"firstname='" + firstname + "', " +
-						"lastname='" + lastname + "', " +
-						"email='" + email + "', " +
-						"type='" + type + "' WHERE member_id=" + memberid;
+		Connection conn = null;
+		PreparedStatement stat = null;
+		String query = null;
 
 		try {
-			Class.forName("sun.jdbc.odbc.JdbcOdbcDriver");
-			Connection con = DriverManager.getConnection("jdbc:odbc:Forum");
-			Statement stat = con.createStatement();
-			stat.execute(query);
-			con.close();
+			if(password != null) {
+				query = "UPDATE members SET password=?, username=?, firstname=?, lastname=?, email=?, type=? WHERE member_id=?";
+			} else {
+				query = "UPDATE members SET username=?, firstname=?, lastname=?, email=?, type=? WHERE member_id=?";
+			}
+			conn = createConn();
+			stat = conn.prepareStatement(query);
+			int index = 0;
+        	if(password != null){
+			    stat.setString(1, password);
+			    index++;
+			}
+			stat.setString(++index, username);
+			stat.setString(++index, firstname);
+			stat.setString(++index, lastname);
+			stat.setString(++index, email);
+			stat.setString(++index, type);
+			stat.setInt(++index, memberid);
+			stat.executeUpdate(query);
 			return true;
 		}
 		catch(Exception e) {
 			e.printStackTrace();
 			return false;
+		}finally{
+			closeConn(conn, stat);
 		}
 	}
 
 	public boolean getMember(String username) {
-		String query = "SELECT * FROM Members WHERE [username]='" + username + "'";
+		String query = "SELECT * FROM members WHERE username=?";
+		Connection conn = null;
+		PreparedStatement stat = null;
 
 		try {
-			Class.forName("sun.jdbc.odbc.JdbcOdbcDriver");
-			Connection con = DriverManager.getConnection("jdbc:odbc:Forum");
-			Statement stat = con.createStatement();
+			conn = createConn();
+			stat = conn.prepareStatement(query);
+			stat.setString(1, username);
 			ResultSet rst = stat.executeQuery(query);
 
 			while(rst.next()) {
@@ -225,22 +272,25 @@ public class Members {
 				regdate = rst.getString("regdate");
 				type = rst.getString("type");
 			}
-			con.close();
 			return true;
 		}
 		catch(Exception e) {
 			e.printStackTrace();
 			return false;
+		}finally{
+			closeConn(conn, stat);
 		}
 	}
 
 	public boolean getMember(int memberid) {
-		String query = "SELECT * FROM Members WHERE member_id=" + memberid;
+		String query = "SELECT * FROM members WHERE member_id=?";
+		Connection conn = null;
+		PreparedStatement stat = null;
 
 		try {
-			Class.forName("sun.jdbc.odbc.JdbcOdbcDriver");
-			Connection con = DriverManager.getConnection("jdbc:odbc:Forum");
-			Statement stat = con.createStatement();
+			conn = createConn();
+			stat = conn.prepareStatement(query);
+			stat.setInt(1, memberid);
 			ResultSet rst = stat.executeQuery(query);
 
 			while(rst.next()) {
@@ -252,32 +302,36 @@ public class Members {
 				regdate = rst.getString("regdate");
 				type = rst.getString("type");
 			}
-			con.close();
 			return true;
 		}
 		catch(Exception e) {
 			e.printStackTrace();
 			return false;
+		}finally{
+			closeConn(conn, stat);
 		}
 	}
 
 	public int getNumPosts(int memberid) {
 		int numMsgs = 0;
-		String query = "SELECT thread_id FROM Threads WHERE member_id=" + memberid;
+		String query = "SELECT thread_id FROM threads WHERE member_id = ?";
+		Connection conn = null;
+		PreparedStatement stat = null;
 
 		try {
-			Class.forName("sun.jdbc.odbc.JdbcOdbcDriver");
-			Connection con = DriverManager.getConnection("jdbc:odbc:Forum");
-			Statement stat = con.createStatement();
+			conn = createConn();
+			stat = conn.prepareStatement(query);
+			stat.setInt(1, memberid);
 			ResultSet rst = stat.executeQuery(query);
 
 			while(rst.next()) {
 				numMsgs++;
 			}
-			con.close();
 		}
 		catch(Exception e) {
 			e.printStackTrace();
+		}finally{
+			closeConn(conn, stat);
 		}
 		return numMsgs;
 	}
@@ -285,11 +339,12 @@ public class Members {
 	public List getMembers() {
 		List members = new LinkedList();
 		String query = "SELECT member_id FROM Members ORDER BY member_id";
+		Connection conn = null;
+		PreparedStatement stat = null;
 
 		try {
-			Class.forName("sun.jdbc.odbc.JdbcOdbcDriver");
-			Connection con = DriverManager.getConnection("jdbc:odbc:Forum");
-			Statement stat = con.createStatement();
+			conn = createConn();
+			stat = conn.prepareStatement(query);
 			ResultSet rst = stat.executeQuery(query);
 
 			while(rst.next()) {
@@ -297,22 +352,24 @@ public class Members {
 				members.add(new Integer(memberid));
 			}
 
-			con.close();
 		}
 		catch(Exception e) {
 			e.printStackTrace();
+		}finally{
+			closeConn(conn, stat);
 		}
 		return members;
 	}
 
 	public List getMods() {
 			List members = new LinkedList();
-			String query = "SELECT member_id FROM Members WHERE type='Administrator' OR type='Moderator' ORDER BY member_id";
+			String query = "SELECT member_id FROM members WHERE type='Administrator' OR type='Moderator' ORDER BY member_id";
+			Connection conn = null;
+			PreparedStatement stat = null;
 
 			try {
-				Class.forName("sun.jdbc.odbc.JdbcOdbcDriver");
-				Connection con = DriverManager.getConnection("jdbc:odbc:Forum");
-				Statement stat = con.createStatement();
+				conn = createConn();
+				stat = conn.prepareStatement(query);
 				ResultSet rst = stat.executeQuery(query);
 
 				while(rst.next()) {
@@ -320,28 +377,32 @@ public class Members {
 					members.add(new Integer(memberid));
 				}
 
-				con.close();
 			}
 			catch(Exception e) {
 				e.printStackTrace();
+			}finally{
+				closeConn(conn, stat);
 			}
 			return members;
 	}
 
 	public boolean delMember(int memberid) {
-		String query = "DELETE FROM Members WHERE member_id=" + memberid;
+		String query = "DELETE FROM members WHERE member_id = ?";
+		Connection conn = null;
+		PreparedStatement stat = null;
 
 		try {
-			Class.forName("sun.jdbc.odbc.JdbcOdbcDriver");
-			Connection con = DriverManager.getConnection("jdbc:odbc:Forum");
-			Statement stat = con.createStatement();
+			conn = createConn();
+			stat = conn.prepareStatement(query);
+			stat.setInt(1, memberid);
 			stat.execute(query);
-			con.close();
 			return true;
 		}
 		catch(Exception e) {
 			e.printStackTrace();
 			return false;
+		}finally{
+			closeConn(conn, stat);
 		}
 	}
 }
