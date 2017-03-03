@@ -64,57 +64,87 @@ public class Threads {
 	public void setPostdate(long postdate) {
 		this.postdate = postdate;
 	}
+	
+	private Connection createConn() throws SQLException, ClassNotFoundException{
+		Class.forName("com.mysql.jdbc.Driver");
+
+		Connection conn = DriverManager.getConnection("jdbc:mysql://192.168.91.136/markerdb", 
+				"marker", "mattl");
+
+		return conn;
+	}
+	
+	private void closeConn(Connection conn, Statement... statements){
+		try{
+			for(Statement stat:statements){
+			    if(stat != null && !stat.isClosed())
+				    stat.close();
+			}
+			if(conn != null && !conn.isClosed())
+		    conn.close();
+		}
+		catch(Exception e) {
+		    e.printStackTrace();
+		}
+	}
+
 
 	public int getNumThreads(int boxid) {
 		int numThreads = 0;
-		String query = "SELECT thread_id FROM Threads WHERE box_id=" + boxid + " AND parent_id=0 ORDER BY post_date DESC";
+		String query = "SELECT thread_id FROM Threads WHERE box_id=? AND parent_id=0 ORDER BY post_date DESC";
+		Connection conn = null;
+		PreparedStatement stat = null;
 
 		try {
-			Class.forName("sun.jdbc.odbc.JdbcOdbcDriver");
-			Connection con = DriverManager.getConnection("jdbc:odbc:Forum");
-			Statement stat = con.createStatement();
+			conn = createConn();
+			stat = conn.prepareStatement(query);
+			stat.setInt(1, boxid);
 			ResultSet rst = stat.executeQuery(query);
 
 			while(rst.next()) {
 				numThreads++;
 			}
-			con.close();
-		}
-		catch(Exception e) {
+		}catch(Exception e) {
 			e.printStackTrace();
+		}finally{
+			closeConn(conn, stat);
 		}
 		return numThreads;
 	}
 
 	public int getNumMsgs(int boxid) {
 		int numMsgs = 0;
-		String query = "SELECT thread_id FROM Threads WHERE box_id=" + boxid;
+		String query = "SELECT thread_id FROM Threads WHERE box_id=?";
+		Connection conn = null;
+		PreparedStatement stat = null;
 
 		try {
-			Class.forName("sun.jdbc.odbc.JdbcOdbcDriver");
-			Connection con = DriverManager.getConnection("jdbc:odbc:Forum");
-			Statement stat = con.createStatement();
+			conn = createConn();
+			stat = conn.prepareStatement(query);
+			stat.setInt(1, boxid);
 			ResultSet rst = stat.executeQuery(query);
 
 			while(rst.next()) {
 				numMsgs++;
 			}
-			con.close();
-		}
-		catch(Exception e) {
+		}catch(Exception e) {
 			e.printStackTrace();
+		}finally{
+			closeConn(conn, stat);
 		}
 		return numMsgs;
 	}
 
-	public List getThreads(int boxid) {
-		List threads = new LinkedList();
-		String query = "SELECT thread_id FROM Threads WHERE box_id=" + boxid + " AND parent_id=0 ORDER BY post_date DESC";
+	public List<Integer> getThreads(int boxid) {
+		List<Integer> threads = new LinkedList<Integer>();
+		String query = "SELECT thread_id FROM Threads WHERE box_id=? AND parent_id=0 ORDER BY post_date DESC";
+		Connection conn = null;
+		PreparedStatement stat = null;
 
 		try {
-			Class.forName("sun.jdbc.odbc.JdbcOdbcDriver");
-			Connection con = DriverManager.getConnection("jdbc:odbc:Forum");
-			Statement stat = con.createStatement();
+			conn = createConn();
+			stat = conn.prepareStatement(query);
+			stat.setInt(1, boxid);
 			ResultSet rst = stat.executeQuery(query);
 
 			while(rst.next()) {
@@ -122,22 +152,24 @@ public class Threads {
 				threads.add(new Integer(threadid));
 			}
 
-			con.close();
-		}
-		catch(Exception e) {
+		}catch(Exception e) {
 			e.printStackTrace();
+		}finally{
+			closeConn(conn, stat);
 		}
 		return threads;
 	}
 
-	public List getReplies(int parentid) {
-		List threads = new LinkedList();
-		String query = "SELECT thread_id FROM Threads WHERE parent_id=" + parentid + " ORDER BY post_date";
+	public List<Integer> getReplies(int parentid) {
+		List<Integer> threads = new LinkedList<Integer>();
+		String query = "SELECT thread_id FROM Threads WHERE parent_id=? ORDER BY post_date";
+		Connection conn = null;
+		PreparedStatement stat = null;
 
 		try {
-			Class.forName("sun.jdbc.odbc.JdbcOdbcDriver");
-			Connection con = DriverManager.getConnection("jdbc:odbc:Forum");
-			Statement stat = con.createStatement();
+			conn = createConn();
+			stat = conn.prepareStatement(query);
+			stat.setInt(1, parentid);
 			ResultSet rst = stat.executeQuery(query);
 
 			while(rst.next()) {
@@ -145,23 +177,25 @@ public class Threads {
 				threads.add(new Integer(threadid));
 			}
 
-			con.close();
-		}
-		catch(Exception e) {
+		}catch(Exception e) {
 			e.printStackTrace();
+		}finally{
+			closeConn(conn, stat);
 		}
 		return threads;
 	}
 
-	public List getLastThreads(int boxid) {
-		List threads = new LinkedList();
+	public List<Integer> getLastThreads(int boxid) {
+		List<Integer> threads = new LinkedList<Integer>();
 		int count = 0;
-		String query = "SELECT thread_id FROM Threads WHERE box_id=" + boxid + " AND parent_id=0 ORDER BY post_date DESC";
+		String query = "SELECT thread_id FROM Threads WHERE box_id=? AND parent_id=0 ORDER BY post_date DESC";
+		Connection conn = null;
+		PreparedStatement stat = null;
 
 		try {
-			Class.forName("sun.jdbc.odbc.JdbcOdbcDriver");
-			Connection con = DriverManager.getConnection("jdbc:odbc:Forum");
-			Statement stat = con.createStatement();
+			conn = createConn();
+			stat = conn.prepareStatement(query);
+			stat.setInt(1, boxid);
 			ResultSet rst = stat.executeQuery(query);
 
 			if(getNumThreads(boxid) <= 5) {
@@ -177,21 +211,24 @@ public class Threads {
 					threads.add(new Integer(threadid));
 				}
 			}
-			con.close();
-		}
-		catch(Exception e) {
+		}catch(Exception e) {
 			e.printStackTrace();
+		}finally{
+			closeConn(conn, stat);
 		}
 		return threads;
 	}
 
 	public boolean getThread(int threadid) {
-		String query = "SELECT * FROM Threads WHERE thread_id=" + threadid;
+		String query = 
+				"SELECT thread_id, paraent_id, box_id, member_id, subject, post_text, post_date FROM Threads WHERE thread_id=?";
+		Connection conn = null;
+		PreparedStatement stat = null;
 
 		try {
-			Class.forName("sun.jdbc.odbc.JdbcOdbcDriver");
-			Connection con = DriverManager.getConnection("jdbc:odbc:Forum");
-			Statement stat = con.createStatement();
+			conn = createConn();
+			stat = conn.prepareStatement(query);
+			stat.setInt(1, threadid);
 			ResultSet rst = stat.executeQuery(query);
 
 			while(rst.next()) {
@@ -204,12 +241,12 @@ public class Threads {
 				postdate = rst.getLong("post_date");
 			}
 
-			con.close();
 			return true;
-		}
-		catch(Exception e) {
+		}catch(Exception e) {
 			e.printStackTrace();
 			return false;
+		}finally{
+			closeConn(conn, stat);
 		}
 	}
 
@@ -217,70 +254,78 @@ public class Threads {
 		threadid = (int) (1000 + Math.random()* 1000);
 		parentid = 0;
 		postdate = new java.util.Date().getTime();
-		String query = "INSERT INTO Threads (thread_id, parent_id, box_id, member_id, [subject], [post_text], post_date) " +
-						"VALUES (" + threadid + ", " +
-						parentid + ", " +
-						boxid + ", " +
-						memberid + ", " +
-						"'" + subject + "', " +
-						"'" + posttext + "', " +
-						postdate + ")";
+		String query = "INSERT INTO Threads (thread_id, parent_id, box_id, member_id, subject, post_text, post_date) " +
+						"VALUES (?,?,?,?,?,?,?)";
+		Connection conn = null;
+		PreparedStatement stat = null;
+
 		try {
-			Class.forName("sun.jdbc.odbc.JdbcOdbcDriver");
-			Connection con = DriverManager.getConnection("jdbc:odbc:Forum");
-			Statement stat = con.createStatement();
-			stat.execute(query);
-			con.close();
+			conn = createConn();
+			stat = conn.prepareStatement(query);
+			stat.setInt(1, threadid);
+			stat.setInt(2, parentid);
+			stat.setInt(3, boxid);
+			stat.setInt(4, memberid);
+            stat.setString(5, subject);
+            stat.setString(6, posttext);
+            stat.setDate(7, postdate);
+			stat.executeUpdate();
 			return true;
-		}
-		catch(Exception e) {
+		}catch(Exception e) {
 			e.printStackTrace();
 			return false;
+		}finally{
+			closeConn(conn, stat);
 		}
 	}
 
 	public boolean replyThread() {
 		postdate = new java.util.Date().getTime();
-		String query = "INSERT INTO Threads (thread_id, parent_id, box_id, member_id, [subject], [post_text], post_date) " +
-						"VALUES (" + threadid + ", " +
-						parentid + ", " +
-						boxid + ", " +
-						memberid + ", " +
-						"'" + subject + "', " +
-						"'" + posttext + "', " +
-						postdate + ")";
+		String query = "INSERT INTO Threads (thread_id, parent_id, box_id, member_id, subject, post_text, post_date) " +
+						"VALUES (?,?,?,?,?,?,?)";
+		Connection conn = null;
+		PreparedStatement stat = null;
+
 		try {
-			Class.forName("sun.jdbc.odbc.JdbcOdbcDriver");
-			Connection con = DriverManager.getConnection("jdbc:odbc:Forum");
-			Statement stat = con.createStatement();
-			stat.execute(query);
-			con.close();
+			conn = createConn();
+			stat = conn.prepareStatement(query);
+			stat.setInt(1, threadid);
+			stat.setInt(2, parentid);
+			stat.setInt(3, boxid);
+			stat.setInt(4, memberid);
+            stat.setString(5, subject);
+            stat.setString(6, posttext);
+            stat.setDate(7, postdate);
+			stat.executeUpdate();
 			return true;
-		}
-		catch(Exception e) {
+		}catch(Exception e) {
 			e.printStackTrace();
 			return false;
+		}finally{
+			closeConn(conn, stat);
 		}
 	}
 
 	public boolean setThread(int threadid) {
 			postdate = new java.util.Date().getTime();
-			String query = "UPDATE Threads SET subject='" + subject + "', " +
-							"post_text='" + posttext + "', " +
-							"post_date='" + postdate + "' " +
-							"WHERE thread_id=" + threadid;
+			String query = "UPDATE Threads SET subject=?, post_text=?, post_date=? WHERE thread_id=?";
+			Connection conn = null;
+			PreparedStatement stat = null;
 
 			try {
-				Class.forName("sun.jdbc.odbc.JdbcOdbcDriver");
-				Connection con = DriverManager.getConnection("jdbc:odbc:Forum");
-				Statement stat = con.createStatement();
-				stat.execute(query);
-				con.close();
+				conn = createConn();
+				stat = conn.prepareStatement(query);
+				stat.setString(1, subject);
+				stat.setString(2,  posttext);
+				stat.setDate(3,  postdate);
+				stat.setInt(4,  threadid);
+				stat.executeUpdate();
 				return true;
-			}
-			catch(Exception e) {
+			}catch(Exception e) {
 				e.printStackTrace();
 				return false;
+			}finally{
+				closeConn(conn, stat);
 			}
 	}
 

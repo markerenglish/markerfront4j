@@ -109,10 +109,12 @@ public class Members {
 		return conn;
 	}
 	
-	private void closeConn(Connection conn, Statement stat){
+	private void closeConn(Connection conn, Statement... statements){
 		try{
-			if(stat != null && !stat.isClosed())
-				stat.close();
+			for(Statement stat:statements){
+			    if(stat != null && !stat.isClosed())
+				    stat.close();
+			}
 			if(conn != null && !conn.isClosed())
 		    conn.close();
 		}
@@ -142,8 +144,7 @@ public class Members {
 				}
 			}
 			return false;
-		}
-		catch(Exception e) {
+		}catch(Exception e) {
 			e.printStackTrace();
 			return false;
 		}finally{
