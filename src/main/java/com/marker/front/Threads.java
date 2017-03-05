@@ -253,7 +253,7 @@ public class Threads {
 	public boolean postThread() {
 		threadid = (int) (1000 + Math.random()* 1000);
 		parentid = 0;
-		postdate = new java.util.Date().getTime();
+		postdate = System.currentTimeMillis();
 		String query = "INSERT INTO Threads (thread_id, parent_id, box_id, member_id, subject, post_text, post_date) " +
 						"VALUES (?,?,?,?,?,?,?)";
 		Connection conn = null;
@@ -268,7 +268,7 @@ public class Threads {
 			stat.setInt(4, memberid);
             stat.setString(5, subject);
             stat.setString(6, posttext);
-            stat.setDate(7, postdate);
+            stat.setDate(7, new java.sql.Date(postdate));
 			stat.executeUpdate();
 			return true;
 		}catch(Exception e) {
@@ -280,7 +280,7 @@ public class Threads {
 	}
 
 	public boolean replyThread() {
-		postdate = new java.util.Date().getTime();
+		postdate = System.currentTimeMillis();
 		String query = "INSERT INTO Threads (thread_id, parent_id, box_id, member_id, subject, post_text, post_date) " +
 						"VALUES (?,?,?,?,?,?,?)";
 		Connection conn = null;
@@ -295,7 +295,7 @@ public class Threads {
 			stat.setInt(4, memberid);
             stat.setString(5, subject);
             stat.setString(6, posttext);
-            stat.setDate(7, postdate);
+            stat.setDate(7, new java.sql.Date(postdate));
 			stat.executeUpdate();
 			return true;
 		}catch(Exception e) {
@@ -307,48 +307,55 @@ public class Threads {
 	}
 
 	public boolean setThread(int threadid) {
-			postdate = new java.util.Date().getTime();
-			String query = "UPDATE Threads SET subject=?, post_text=?, post_date=? WHERE thread_id=?";
-			Connection conn = null;
-			PreparedStatement stat = null;
+		postdate = System.currentTimeMillis();
+    	String query = "UPDATE Threads SET subject=?, post_text=?, post_date=? WHERE thread_id=?";
+	    Connection conn = null;
+		PreparedStatement stat = null;
 
-			try {
-				conn = createConn();
-				stat = conn.prepareStatement(query);
-				stat.setString(1, subject);
-				stat.setString(2,  posttext);
-				stat.setDate(3,  postdate);
-				stat.setInt(4,  threadid);
-				stat.executeUpdate();
-				return true;
-			}catch(Exception e) {
-				e.printStackTrace();
-				return false;
-			}finally{
-				closeConn(conn, stat);
-			}
+		try {
+			conn = createConn();
+			stat = conn.prepareStatement(query);
+			stat.setString(1, subject);
+			stat.setString(2,  posttext);
+			stat.setDate(3,  new java.sql.Date(postdate));
+			stat.setInt(4,  threadid);
+			stat.executeUpdate();
+			return true;
+		}catch(Exception e) {
+			e.printStackTrace();
+			return false;
+		}finally{
+			closeConn(conn, stat);
+		}
 	}
 
 	public boolean delThread(int threadid) {
-		String parent_id = "";
 		getThread(threadid);
+		String query1 = "DELETE FROM Threads WHERE thread_id=?";
+		String query2 = "DELETE FROM Threads WHERE thread_id=?  OR parent_id=?";
 
-		if(parentid == 0)
-			parent_id = " OR parent_id=" + threadid;
-
-		String query = "DELETE FROM Threads WHERE thread_id=" + threadid + parent_id;
+		Connection conn = null;
+		PreparedStatement stat = null;
 
 		try {
-			Class.forName("sun.jdbc.odbc.JdbcOdbcDriver");
-			Connection con = DriverManager.getConnection("jdbc:odbc:Forum");
-			Statement stat = con.createStatement();
-			stat.execute(query);
-			con.close();
+			conn = createConn();
+			if(parentid == 0){
+			    stat = conn.prepareStatement(query2);
+			    stat.setInt(1, threadid);
+			    stat.setInt(2, threadid);
+			}
+			else{
+				stat = conn.prepareStatement(query1);
+			    stat.setInt(1, threadid);
+			}
+			
+			stat.executeUpdate();
 			return true;
-		}
-		catch(Exception e) {
+		}catch(Exception e) {
 			e.printStackTrace();
 			return false;
+		}finally{
+			closeConn(conn, stat);
 		}
 	}
 }

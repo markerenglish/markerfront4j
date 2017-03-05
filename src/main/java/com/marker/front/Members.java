@@ -337,8 +337,8 @@ public class Members {
 		return numMsgs;
 	}
 
-	public List getMembers() {
-		List members = new LinkedList();
+	public List<Integer> getMembers() {
+		List<Integer> members = new LinkedList<Integer>();
 		String query = "SELECT member_id FROM Members ORDER BY member_id";
 		Connection conn = null;
 		PreparedStatement stat = null;
@@ -362,8 +362,8 @@ public class Members {
 		return members;
 	}
 
-	public List getMods() {
-			List members = new LinkedList();
+	public List<Integer> getMods() {
+			List<Integer> members = new LinkedList<Integer>();
 			String query = "SELECT member_id FROM members WHERE type='Administrator' OR type='Moderator' ORDER BY member_id";
 			Connection conn = null;
 			PreparedStatement stat = null;
