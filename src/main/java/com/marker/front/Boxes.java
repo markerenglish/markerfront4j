@@ -65,14 +65,14 @@ public class Boxes {
 
 	public List<Integer> getBoxes() {
 		List<Integer> boxes = new LinkedList<Integer>();
-		String query = "SELECT box_id FROM Boxes";
+		String query = "SELECT box_id FROM boxes";
 		Connection conn = null;
 		PreparedStatement stat = null;
 
 		try {
 			conn = createConn();
 			stat = conn.prepareStatement(query);
-			ResultSet rst = stat.executeQuery(query);
+			ResultSet rst = stat.executeQuery();
 
 			while(rst.next()) {
 				boxid = rst.getInt("box_id");
@@ -89,7 +89,7 @@ public class Boxes {
 
 	public List<Integer> getBoxes(int memberid) {
 		List<Integer> boxes = new LinkedList<Integer>();
-		String query = "SELECT box_id FROM Boxes WHERE member_id=?";
+		String query = "SELECT box_id FROM boxes WHERE member_id=?";
 		Connection conn = null;
 		PreparedStatement stat = null;
 
@@ -97,7 +97,7 @@ public class Boxes {
 			conn = createConn();
 			stat = conn.prepareStatement(query);
 			stat.setInt(1, memberid);
-			ResultSet rst = stat.executeQuery(query);
+			ResultSet rst = stat.executeQuery();
 
 			while(rst.next()) {
 				boxid = rst.getInt("box_id");
@@ -113,7 +113,7 @@ public class Boxes {
 	}
 
 	public boolean getBox(int boxid) {
-		String query = "SELECT box_id, member_id, box_name, sort_desc FROM Boxes WHERE box_id=?";
+		String query = "SELECT box_id, member_id, box_name, sort_desc FROM boxes WHERE box_id=?";
 		Connection conn = null;
 		PreparedStatement stat = null;
 
@@ -121,7 +121,7 @@ public class Boxes {
 			conn = createConn();
 			stat = conn.prepareStatement(query);
 			stat.setInt(1, boxid);
-			ResultSet rst = stat.executeQuery(query);
+			ResultSet rst = stat.executeQuery();
 
 			while(rst.next()) {
 				this.boxid = rst.getInt("box_id");
@@ -140,7 +140,7 @@ public class Boxes {
 
 	public boolean setBox() {
 		String query = 
-				"INSERT INTO Boxes (box_id, member_id, box_name, sort_desc) VALUES (default, ?, ?, ?)";
+				"INSERT INTO boxes (member_id, box_name, sort_desc) VALUES (?, ?, ?)";
 		Connection conn = null;
 		PreparedStatement stat = null;
 
@@ -151,6 +151,10 @@ public class Boxes {
 			stat.setString(2, boxname);
 			stat.setString(3, sortdesc);
 			stat.executeUpdate();
+			ResultSet tableKeys = stat.getGeneratedKeys();
+			tableKeys.next();
+			boxid = tableKeys.getInt(1);
+
 			return true;
 		}catch(Exception e) {
 			e.printStackTrace();
@@ -161,7 +165,7 @@ public class Boxes {
 	}
 
 	public boolean setBox(int boxid) {
-		String query = "UPDATE Boxes SET box_name=?, sort_desc=? WHERE box_id=?";
+		String query = "UPDATE boxes SET box_name=?, sort_desc=? WHERE box_id=?";
 
 		Connection conn = null;
 		PreparedStatement stat = null;
@@ -183,8 +187,8 @@ public class Boxes {
 	}
 
 	public boolean delBox(int boxid) {
-		String query1 = "DELETE FROM Boxes WHERE box_id=?";
-		String query2 = "DELETE FROM Threads WHERE box_id=?";
+		String query1 = "DELETE FROM boxes WHERE box_id=?";
+		String query2 = "DELETE FROM threads WHERE box_id=?";
 		Connection conn = null;
 		PreparedStatement stat1 = null, stat2 = null;
 
@@ -204,7 +208,7 @@ public class Boxes {
 	}
 
 	public boolean isMod(int memberid) {
-			String query = "SELECT box_id FROM Boxes WHERE member_id=?";
+			String query = "SELECT box_id FROM boxes WHERE member_id=?";
 			Connection conn = null;
 			PreparedStatement stat = null;
 
@@ -228,7 +232,7 @@ public class Boxes {
 	}
 
 	public boolean assignBox(int boxid, int memberid) {
-			String query = "UPDATE Boxes SET member_id=? WHERE box_id=?";
+			String query = "UPDATE boxes SET member_id=? WHERE box_id=?";
 			Connection conn = null;
 			PreparedStatement stat = null;
 
@@ -248,7 +252,7 @@ public class Boxes {
 	}
 
 	public boolean unassignBox(int memberid) {
-				String query = "UPDATE Boxes SET member_id=0 WHERE member_id=?";
+				String query = "UPDATE boxes SET member_id=0 WHERE member_id=?";
 				Connection conn = null;
 				PreparedStatement stat = null;
 
@@ -268,7 +272,7 @@ public class Boxes {
 
 	public List<Integer> getUnallocBoxes() {
 			List<Integer> boxes = new LinkedList<Integer>();
-			String query = "SELECT box_id FROM Boxes WHERE member_id=0";
+			String query = "SELECT box_id FROM boxes WHERE member_id=0";
 			Connection conn = null;
 			PreparedStatement stat = null;
 

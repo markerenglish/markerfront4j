@@ -1,0 +1,265 @@
+root password:mattl
+other user:matt/mattl
+
+#add matt to wheel sudo group
+$usermod -a -G wheel matt
+
+$ln -s -f /opt/jdk1.8.0_111/bin/java /usr/bin/java
+$ln -s -f /opt/jdk1.8.0_111/bin/javac /usr/bin/javac
+$ln -s -f /opt/jdk1.8.0_111/bin/jar /usr/bin/jar
+$ln -s -f /opt/jdk1.8.0_111/bin/jps /usr/bin/jps
+$ln -s -f /opt/jdk1.8.0_111/bin/jstack /usr/bin/jstack
+$ln -s -f /opt/jdk1.8.0_111/bin/jstat /usr/bin/jstat
+$ln -s -f /opt/jdk1.8.0_111/bin/wsgn /usr/bin/wsgn
+
+#install nginx, verify nginx http://localhost or http://http://192.168.91.136, start nginx on boot
+$sudo yum install epel-release
+$sudo yum install nginx
+
+#install nginx from sources, and c compiler, build with debug
+-------------------------------------------------------------
+$cd /root/Downloads
+$yum install gcc glibc glibc-common gd gd-devel -y
+$wget http://nginx.org/download/nginx-1.10.2.tar.gz
+$tar zxf nginx-1.10.2.tar.gz
+$./configure --with-debug
+Configuration summary
+  + using system PCRE library
+  + OpenSSL library is not used
+  + using builtin md5 code
+  + sha1 library is not found
+  + using system zlib library
+
+  nginx path prefix: "/usr/local/nginx"
+  nginx binary file: "/usr/local/nginx/sbin/nginx"
+  nginx modules path: "/usr/local/nginx/modules"
+  nginx configuration prefix: "/usr/local/nginx/conf"
+  nginx configuration file: "/usr/local/nginx/conf/nginx.conf"
+  nginx pid file: "/usr/local/nginx/logs/nginx.pid"
+  nginx error log file: "/usr/local/nginx/logs/error.log"
+  nginx http access log file: "/usr/local/nginx/logs/access.log"
+  nginx http client request body temporary files: "client_body_temp"
+  nginx http proxy temporary files: "proxy_temp"
+  nginx http fastcgi temporary files: "fastcgi_temp"
+  nginx http uwsgi temporary files: "uwsgi_temp"
+  nginx http scgi temporary files: "scgi_temp"
+
+$cd /lib/systemd/system
+$vi nginx.service
+[Unit]
+Description=The NGINX HTTP and reverse proxy server
+After=syslog.target network.target remote-fs.target nss-lookup.target
+
+[Service]
+Type=forking
+PIDFile=/usr/local/nginx/logs/nginx.pid
+ExecStartPre=/usr/local/nginx/sbin/nginx -t
+ExecStart=/usr/local/nginx/sbin/nginx
+ExecReload=/bin/kill -s HUP $MAINPID
+ExecStop=/bin/kill -s QUIT $MAINPID
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target
+
+------------------------------------------------------------
+
+#start nginx, and enable on boot
+$sudo systemctl start nginx
+$sudo systemctl enable nginx
+Created symlink from /etc/systemd/system/multi-user.target.wants/nginx.service to /usr/lib/systemd/system/nginx.service.
+
+#check firewall
+$firewall-cmd --get-default-zone
+$firewall-cmd --permanent --zone=public --add-service=http
+$firewall-cmd --permanent --zone=public --add-service=https
+$firewall-cmd --zone=public --list-ports
+$firewall-cmd --permanent --zone=public --add-port=8000-8999/tcp
+#mysql port
+$firewall-cmd --permanent --zone=public --add-port=3306/tcp
+$firewall-cmd --reload
+
+
+#install mariadb, start mariadb and run security script, start mariadb on boot
+$sudo yum install mariadb-server mariadb
+$sudo systemctl start mariadb
+$sudo mysql_secure_installation
+  Set root password? [Y/n] Y
+  Remove anonymous users? [Y/n] Y
+  Disallow root login remotely? [Y/n] Y
+  Remove test database and access to it? [Y/n] Y
+  Reload privilege tables now? [Y/n] Y
+$sudo systemctl enable mariadb
+#mysql default port is 3306 and port can be changed to added the following to /etc/my.cnf
+[mysqld]
+port = 3337
+
+#install php, 
+#It can run scripts, connect to our MySQL databases to get information, 
+#and hand the processed content over to our web server to display.
+$sudo yum install php php-mysql php-fpm
+
+#config php processor, start php processor on boot
+$sudo vi /etc/php.ini
+#uncomment and set cgi.fix_pathinfo=0, 
+#by default =1 and it tells PHP to attempt to execute the closet file it can find if a PHP file does not match exactly.
+$sudo vi /etc/php-fpm.d/www.conf
+#uncomment and update the following abot FastCGI Process Manager
+#listen = /var/run/php-fpm/php-fpm.sock
+#listen.owner = nobody
+#listen.group = nobody
+#user = nginx
+#group = nginx
+$sudo systemctl start php-fpm
+$sudo systemctl enable php-fpm
+
+#config nginx to process php pages, uses php processor for dynamic content
+#update the server block in nginx.conf, debug is on
+server {
+    listen       80;
+    server_name  192.168.91.136;
+
+    # note that these lines are originally from the "location /" block
+    root   /u01/www/phpBB3;
+    #root   /usr/local/nginx/html;
+    access_log /usr/local/nginx/logs/access.log;
+    error_log /usr/local/nginx/logs/error.log debug;
+    index index.php index.html index.htm;
+
+    location / {
+        try_files $uri $uri/ =404;
+    }
+
+    location ~ .php$ {
+        try_files $uri =404;
+        fastcgi_pass unix:/var/run/php-fpm/php-fpm.sock;
+        fastcgi_index index.php;
+        fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
+        include fastcgi_params;
+    }
+}
+
+#set SELinux disabled in /etc/selinux/config
+
+#create database, login as root
+$mysql -u root -p
+MariaDB [(none)]> create database phpBB;
+MariaDB [(none)]> grant all on phpBB.* to matt@localhost IDENTIFIED BY 'mattl';
+#grant port connection to mysql for user root
+grant ALL ON *.* to root@'192.168.91.136' IDENTIFIED BY 'mattl';
+#try port access
+mysql -u root -h 192.168.91.136 -P 3306 -p
+
+#connect to database phpBB, database name case sensitive
+$mysql -u matt -p phpBB
+
+#install phpBB3
+#admin user: admin/mattl8phpbb
+#download config.php and put it to phpBB root directory.
+
+#GitHub
+markerenglish/Marker8Vaughan/markerenglish@outlook.com
+phpforum repository:
+https://github.com/markerenglish/phpforum.git
+
+#install GitHub Mylyn Connector on eclipse
+------------------------------------------------------------
+To manually install it, visit the EGit home page
+http://eclipse.org/egit/download/
+And copy the update link you want to use. I use the following:
+http://download.eclipse.org/egit/github/updates
+In Eclipse, go to
+Help > Install New Software... > Click the Add... button
+In the Name field type GitHub Mylyn Connector for future reference, and past the update URL in the Location field.
+Click the OK button.
+You should now see the Collaboration option, and you can expand it to verify that it will install "Eclipse GitHub integration with task focused interface".
+Click Next, agree to the terms, Next, have Eclipse restart, and you should be ready to go.
+After Eclipse starts up again, open the Task Repositories view > right-click in the view > click Add Task Repository.. > Choose GitHub Issues > Then continue on with configuring for GitHub and creating a New Query.
+-------------------------------------------------------------
+
+#add jetty maven plugin to eclipse, 
+#1)add the following plugingroup to C:\Users\Matt\.m2\settings.xml
+  <pluginGroups>
+    <pluginGroup>org.mortbay.jetty</pluginGroup>
+  </pluginGroups>
+
+#2)add the following to pom.xml. Use verion 9.4.0.v20161208, maven couldn't load plugin version 9.4.1-SNAPSHOT.
+      <plugin>
+      	<groupId>org.eclipse.jetty</groupId>
+      	<artifactId>jetty-maven-plugin</artifactId>
+      	<version>9.4.0.v20161208</version>
+      </plugin>
+#3)add the following to pom.xml to use latest maven compiler plugin
+ 	  <plugin>
+		<groupId>org.apache.maven.plugins</groupId>
+		<artifactId>maven-compiler-plugin</artifactId>
+		<version>3.6.1</version>
+		<configuration>
+			<source>1.8</source>
+			<target>1.8</target>
+			<!-- fork>true</fork>
+			<executable>C:\matt-tools\Java\jdk1.8.0_121\bin\javac</executable-->
+		</configuration>
+	  </plugin>
+
+#installed jetty on vm
+/home/matt/jetty-distribution-9.4.0.v20161208/bin
+#check open port
+netstat -vatn
+#add jetty
+
+#create database
+CREATE DATABASE markerdb DEFAULT CHARACTER SET utf8 COLLATE utf8_unicode_ci;
+show databases;
+CREATE USER 'marker'@'localhost' IDENTIFIED BY 'mattl';
+create user 'marker'@'%' identified by 'mattl';
+
+select User,Host from mysql.user;
+GRANT ALL ON markerdb.* TO 'marker'@'localhost' IDENTIFIED BY 'mattl';
+grant ALL on markerdb.* to 'marker'@'%';
+show grants for marker@localhost;
+show grants for 'marker'@'%';
+
+#create database tables
+#In MySQL, the InnoDB storage engine supports foreign keys so that you must create InnoDB tables in order to use foreign key constraints.
+BOXES:box_id, member_id, box_name, sort_desc
+LEVELS:grade, min_post, max_post, description
+MEMBERS:member_id, username, password, firstname, lastname, email, regdate, type
+THREADS:thread_id, box_id, parent_id, member_id, subject, post_text
+
+>mysql -umarker -p
+use markerdb;
+DROP TABLE IF EXISTS threads;
+DROP TABLE IF EXISTS boxes;
+DROP TABLE IF EXISTS members;
+DROP TABLE IF EXISTS levels;
+CREATE TABLE members(member_id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+                     username VARCHAR(30) NOT NULL,
+                     password VARCHAR(30) NOT NULL,
+                     firstname VARCHAR(30),
+                     lastname VARCHAR(30),
+                     email VARCHAR(50),
+                     regdate DATETIME NOT NULL,
+                     type CHAR(3) NOT NULL) ENGINE=InnoDB AUTO_INCREMENT=10000;
+
+CREATE TABLE boxes(box_id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+                   member_id INT,
+                   box_name VARCHAR(30) NOT NULL,
+                   sort_desc VARCHAR(200)) ENGINE=InnoDB AUTO_INCREMENT=1000;
+ALTER table boxes ADD CONSTRAINT bx_member_fk FOREIGN KEY fk_member(member_id) REFERENCES members(member_id);
+                   
+
+CREATE TABLE levels(grade CHAR(3) NOT NULL,
+                    min_post INT NOT NULL,
+                    max_post INT NOT NULL,
+                    description VARCHAR(200)) ENGINE=InnoDB;
+
+
+CREATE TABLE threads(thread_id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+                     box_id INT NOT NULL,
+                     parent_id INT,
+                     member_id INT,
+                     subject VARCHAR(200) NOT NULL,
+                     post_text VARCHAR(2000)) ENGINE=InnoDB;
+ALTER table threads ADD CONSTRAINT td_member_fk FOREIGN KEY fk_member(member_id) REFERENCES members(member_id);
+ALTER table threads ADD CONSTRAINT td_box_fk FOREIGN KEY fk_box(box_id) REFERENCES boxes(box_id);

@@ -91,7 +91,7 @@ public class Threads {
 
 	public int getNumThreads(int boxid) {
 		int numThreads = 0;
-		String query = "SELECT thread_id FROM Threads WHERE box_id=? AND parent_id=0 ORDER BY post_date DESC";
+		String query = "SELECT thread_id FROM threads WHERE box_id=? AND parent_id=0 ORDER BY post_date DESC";
 		Connection conn = null;
 		PreparedStatement stat = null;
 
@@ -99,7 +99,7 @@ public class Threads {
 			conn = createConn();
 			stat = conn.prepareStatement(query);
 			stat.setInt(1, boxid);
-			ResultSet rst = stat.executeQuery(query);
+			ResultSet rst = stat.executeQuery();
 
 			while(rst.next()) {
 				numThreads++;
@@ -114,7 +114,7 @@ public class Threads {
 
 	public int getNumMsgs(int boxid) {
 		int numMsgs = 0;
-		String query = "SELECT thread_id FROM Threads WHERE box_id=?";
+		String query = "SELECT thread_id FROM threads WHERE box_id=?";
 		Connection conn = null;
 		PreparedStatement stat = null;
 
@@ -122,7 +122,7 @@ public class Threads {
 			conn = createConn();
 			stat = conn.prepareStatement(query);
 			stat.setInt(1, boxid);
-			ResultSet rst = stat.executeQuery(query);
+			ResultSet rst = stat.executeQuery();
 
 			while(rst.next()) {
 				numMsgs++;
@@ -137,7 +137,7 @@ public class Threads {
 
 	public List<Integer> getThreads(int boxid) {
 		List<Integer> threads = new LinkedList<Integer>();
-		String query = "SELECT thread_id FROM Threads WHERE box_id=? AND parent_id=0 ORDER BY post_date DESC";
+		String query = "SELECT thread_id FROM threads WHERE box_id=? AND parent_id=0 ORDER BY post_date DESC";
 		Connection conn = null;
 		PreparedStatement stat = null;
 
@@ -145,7 +145,7 @@ public class Threads {
 			conn = createConn();
 			stat = conn.prepareStatement(query);
 			stat.setInt(1, boxid);
-			ResultSet rst = stat.executeQuery(query);
+			ResultSet rst = stat.executeQuery();
 
 			while(rst.next()) {
 				threadid = rst.getInt("thread_id");
@@ -162,7 +162,7 @@ public class Threads {
 
 	public List<Integer> getReplies(int parentid) {
 		List<Integer> threads = new LinkedList<Integer>();
-		String query = "SELECT thread_id FROM Threads WHERE parent_id=? ORDER BY post_date";
+		String query = "SELECT thread_id FROM threads WHERE parent_id=? ORDER BY post_date";
 		Connection conn = null;
 		PreparedStatement stat = null;
 
@@ -170,7 +170,7 @@ public class Threads {
 			conn = createConn();
 			stat = conn.prepareStatement(query);
 			stat.setInt(1, parentid);
-			ResultSet rst = stat.executeQuery(query);
+			ResultSet rst = stat.executeQuery();
 
 			while(rst.next()) {
 				threadid = rst.getInt("thread_id");
@@ -188,7 +188,7 @@ public class Threads {
 	public List<Integer> getLastThreads(int boxid) {
 		List<Integer> threads = new LinkedList<Integer>();
 		int count = 0;
-		String query = "SELECT thread_id FROM Threads WHERE box_id=? AND parent_id=0 ORDER BY post_date DESC";
+		String query = "SELECT thread_id FROM threads WHERE box_id=? AND parent_id=0 ORDER BY post_date DESC";
 		Connection conn = null;
 		PreparedStatement stat = null;
 
@@ -196,7 +196,7 @@ public class Threads {
 			conn = createConn();
 			stat = conn.prepareStatement(query);
 			stat.setInt(1, boxid);
-			ResultSet rst = stat.executeQuery(query);
+			ResultSet rst = stat.executeQuery();
 
 			if(getNumThreads(boxid) <= 5) {
 				while(rst.next()) {
@@ -221,7 +221,7 @@ public class Threads {
 
 	public boolean getThread(int threadid) {
 		String query = 
-				"SELECT thread_id, paraent_id, box_id, member_id, subject, post_text, post_date FROM Threads WHERE thread_id=?";
+				"SELECT thread_id, paraent_id, box_id, member_id, subject, post_text, post_date FROM threads WHERE thread_id=?";
 		Connection conn = null;
 		PreparedStatement stat = null;
 
@@ -229,7 +229,7 @@ public class Threads {
 			conn = createConn();
 			stat = conn.prepareStatement(query);
 			stat.setInt(1, threadid);
-			ResultSet rst = stat.executeQuery(query);
+			ResultSet rst = stat.executeQuery();
 
 			while(rst.next()) {
 				this.threadid = rst.getInt("thread_id");
@@ -251,25 +251,28 @@ public class Threads {
 	}
 
 	public boolean postThread() {
-		threadid = (int) (1000 + Math.random()* 1000);
 		parentid = 0;
-		postdate = System.currentTimeMillis();
-		String query = "INSERT INTO Threads (thread_id, parent_id, box_id, member_id, subject, post_text, post_date) " +
-						"VALUES (?,?,?,?,?,?,?)";
+		postdate = new java.util.Date().getTime();
+		String query = "INSERT INTO threads (parent_id, box_id, member_id, subject, post_text, post_date) " +
+						"VALUES (?,?,?,?,?,?)";
 		Connection conn = null;
 		PreparedStatement stat = null;
 
 		try {
 			conn = createConn();
 			stat = conn.prepareStatement(query);
-			stat.setInt(1, threadid);
-			stat.setInt(2, parentid);
-			stat.setInt(3, boxid);
-			stat.setInt(4, memberid);
-            stat.setString(5, subject);
-            stat.setString(6, posttext);
-            stat.setDate(7, new java.sql.Date(postdate));
+			stat.setInt(1, parentid);
+			stat.setInt(2, boxid);
+			stat.setInt(3, memberid);
+            stat.setString(4, subject);
+            stat.setString(5, posttext);
+            stat.setDate(6, new java.sql.Date(postdate));
 			stat.executeUpdate();
+			
+			ResultSet tableKeys = stat.getGeneratedKeys();
+			tableKeys.next();
+			threadid = tableKeys.getInt(1);
+			
 			return true;
 		}catch(Exception e) {
 			e.printStackTrace();
@@ -280,23 +283,25 @@ public class Threads {
 	}
 
 	public boolean replyThread() {
-		postdate = System.currentTimeMillis();
-		String query = "INSERT INTO Threads (thread_id, parent_id, box_id, member_id, subject, post_text, post_date) " +
-						"VALUES (?,?,?,?,?,?,?)";
+		postdate = new java.util.Date().getTime();
+		String query = "INSERT INTO threads (parent_id, box_id, member_id, subject, post_text, post_date) " +
+						"VALUES (?,?,?,?,?,?)";
 		Connection conn = null;
 		PreparedStatement stat = null;
 
 		try {
 			conn = createConn();
 			stat = conn.prepareStatement(query);
-			stat.setInt(1, threadid);
-			stat.setInt(2, parentid);
-			stat.setInt(3, boxid);
-			stat.setInt(4, memberid);
-            stat.setString(5, subject);
-            stat.setString(6, posttext);
-            stat.setDate(7, new java.sql.Date(postdate));
+			stat.setInt(1, parentid);
+			stat.setInt(2, boxid);
+			stat.setInt(3, memberid);
+            stat.setString(4, subject);
+            stat.setString(5, posttext);
+            stat.setDate(6, new java.sql.Date(postdate));
 			stat.executeUpdate();
+			ResultSet tableKeys = stat.getGeneratedKeys();
+			tableKeys.next();
+			threadid = tableKeys.getInt(1);
 			return true;
 		}catch(Exception e) {
 			e.printStackTrace();
@@ -307,8 +312,8 @@ public class Threads {
 	}
 
 	public boolean setThread(int threadid) {
-		postdate = System.currentTimeMillis();
-    	String query = "UPDATE Threads SET subject=?, post_text=?, post_date=? WHERE thread_id=?";
+		postdate = new java.util.Date().getTime();
+    	String query = "UPDATE threads SET subject=?, post_text=?, post_date=? WHERE thread_id=?";
 	    Connection conn = null;
 		PreparedStatement stat = null;
 
@@ -331,8 +336,8 @@ public class Threads {
 
 	public boolean delThread(int threadid) {
 		getThread(threadid);
-		String query1 = "DELETE FROM Threads WHERE thread_id=?";
-		String query2 = "DELETE FROM Threads WHERE thread_id=?  OR parent_id=?";
+		String query1 = "DELETE FROM threads WHERE thread_id=?";
+		String query2 = "DELETE FROM threads WHERE thread_id=?  OR parent_id=?";
 
 		Connection conn = null;
 		PreparedStatement stat = null;

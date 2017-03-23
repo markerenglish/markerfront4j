@@ -75,7 +75,7 @@
 %>
 <html>
 	<head>
-		<title>Easy JSP Forum</title>
+		<title>Marker Learning Center</title>
 
 		<style type="text/css">
 			<!--
@@ -94,7 +94,7 @@
 				  <table border="0" cellspacing="0" cellpadding="0">
 					<tr>
 					  <td width="74"><img src="images/logo.gif" align="absmiddle" border="0"></td>
-					  <td width="343" valign="middle" align="left"><span class="title">Easy JSP Forum</span></td>
+					  <td width="343" valign="middle" align="left"><span class="title">Marker Learning Center</span></td>
 					  <td width="300" background="images/banner_bg.jpg"></td>
 					  <td width="303"><img src="images/banner.jpg"></td>
 					</tr>

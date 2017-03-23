@@ -133,7 +133,7 @@ public class Members {
 		try {
 			conn = createConn();
 			stat = conn.prepareStatement(query);
-			ResultSet rst = stat.executeQuery(query);
+			ResultSet rst = stat.executeQuery();
 
 			while(rst.next()) {
 				DbUsername = rst.getString("username");
@@ -156,25 +156,29 @@ public class Members {
 		Connection conn = null;
 		PreparedStatement stat = null;
 
-		memberid = (int) (1000 + Math.random()* 1000);
 		firstname = "";
 		lastname = "";
 		email = "";
-		type = "Member";
+		type = "Mem";
 
 		String query = 
-				"INSERT INTO members (member_id, username, password, firstname, lastname, email, regdate, type) VALUES (?,?,?,?,?,?,?,?)";
+				"INSERT INTO members (username, password, firstname, lastname, email, regdate, type) VALUES (?,?,?,?,?,?,?)";
+
 		try {
 			conn = createConn();
 			stat = conn.prepareStatement(query);
-			stat.setInt(1, memberid);
-			stat.setString(2, username);
-			stat.setString(3, password);
-			stat.setString(4, firstname);
-			stat.setString(5, lastname);
-			stat.setString(6, email);
-			stat.setDate(7, new java.sql.Date(System.currentTimeMillis()));
-			stat.executeUpdate(query);
+			stat.setString(1, username);
+			stat.setString(2, password);
+			stat.setString(3, firstname);
+			stat.setString(4, lastname);
+			stat.setString(5, email);
+			stat.setDate(6, new java.sql.Date(new java.util.Date().getTime()));
+			stat.setString(7, type);
+			stat.executeUpdate();
+			ResultSet tableKeys = stat.getGeneratedKeys();
+			tableKeys.next();
+			memberid = tableKeys.getInt(1);
+
 			return true;
 		}
 		catch(Exception e) {
@@ -207,7 +211,7 @@ public class Members {
 			stat.setString(++index, lastname);
 			stat.setString(++index, email);
 			stat.setString(++index, username);
-			stat.executeUpdate(query);
+			stat.executeUpdate();
 			return true;
 		}
 		catch(Exception e) {
@@ -242,7 +246,7 @@ public class Members {
 			stat.setString(++index, email);
 			stat.setString(++index, type);
 			stat.setInt(++index, memberid);
-			stat.executeUpdate(query);
+			stat.executeUpdate();
 			return true;
 		}
 		catch(Exception e) {
@@ -262,7 +266,7 @@ public class Members {
 			conn = createConn();
 			stat = conn.prepareStatement(query);
 			stat.setString(1, username);
-			ResultSet rst = stat.executeQuery(query);
+			ResultSet rst = stat.executeQuery();
 
 			while(rst.next()) {
 				memberid = rst.getInt("member_id");
@@ -292,7 +296,7 @@ public class Members {
 			conn = createConn();
 			stat = conn.prepareStatement(query);
 			stat.setInt(1, memberid);
-			ResultSet rst = stat.executeQuery(query);
+			ResultSet rst = stat.executeQuery();
 
 			while(rst.next()) {
 				this.memberid = rst.getInt("member_id");
@@ -323,7 +327,7 @@ public class Members {
 			conn = createConn();
 			stat = conn.prepareStatement(query);
 			stat.setInt(1, memberid);
-			ResultSet rst = stat.executeQuery(query);
+			ResultSet rst = stat.executeQuery();
 
 			while(rst.next()) {
 				numMsgs++;
@@ -346,7 +350,7 @@ public class Members {
 		try {
 			conn = createConn();
 			stat = conn.prepareStatement(query);
-			ResultSet rst = stat.executeQuery(query);
+			ResultSet rst = stat.executeQuery();
 
 			while(rst.next()) {
 				memberid = rst.getInt("member_id");
@@ -364,14 +368,15 @@ public class Members {
 
 	public List<Integer> getMods() {
 			List<Integer> members = new LinkedList<Integer>();
-			String query = "SELECT member_id FROM members WHERE type='Administrator' OR type='Moderator' ORDER BY member_id";
+			String query = "SELECT member_id FROM members WHERE type='Adm' OR type='Mod' ORDER BY member_id";
+			//Administrator or Moderator
 			Connection conn = null;
 			PreparedStatement stat = null;
 
 			try {
 				conn = createConn();
 				stat = conn.prepareStatement(query);
-				ResultSet rst = stat.executeQuery(query);
+				ResultSet rst = stat.executeQuery();
 
 				while(rst.next()) {
 					memberid = rst.getInt("member_id");
@@ -396,7 +401,7 @@ public class Members {
 			conn = createConn();
 			stat = conn.prepareStatement(query);
 			stat.setInt(1, memberid);
-			stat.execute(query);
+			stat.execute();
 			return true;
 		}
 		catch(Exception e) {
